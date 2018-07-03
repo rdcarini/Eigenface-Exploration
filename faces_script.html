@@ -1,0 +1,455 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Eigenfaces Explorative Analysis</title><meta name="generator" content="MATLAB 9.3"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2018-07-02"><meta name="DC.source" content="faces_script.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Eigenfaces Explorative Analysis</h1><!--introduction--><p>The following MATLAB code reads in facial images (a subset of the images provided at <a href="https://cyberextruder.com/face-matching-data-set-download/">https://cyberextruder.com/face-matching-data-set-download/</a>) and performs analysis on the dataset.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#2">PCA of Faces</a></li><li><a href="#4">Plot of the Proportion of Variance Explained by Eigenfaces</a></li><li><a href="#5">Image Compression</a></li><li><a href="#7">Facial Recognition</a></li><li><a href="#12">Clustering in "Face Space"</a></li></ul></div><pre class="codeinput"><span class="comment">%Begin by reading in dataset:</span>
+faces = csvread(<span class="string">'faces.csv'</span>,1,1);
+<span class="keyword">for</span> i=1:1000
+    faces(i,:) = mat2gray(faces(i,:));
+<span class="keyword">end</span>
+
+<span class="comment">%Display the average face of data:</span>
+avg_face = zeros(10000,1);
+<span class="keyword">for</span> i=1:10000
+   avg_face(i) = sum(faces(:,i))/1000.0;
+<span class="keyword">end</span>
+avg_face = mat2gray(avg_face);
+figure
+imshow(imresize(reshape(avg_face,[100,100]),[500, 500]),[]);
+title(<span class="string">'Average face from data'</span>);
+</pre><img vspace="5" hspace="5" src="faces_script_01.png" alt=""> <h2 id="2">PCA of Faces</h2><p>Here we perform PCA on the face dataset and view the first 16 eigenfaces.</p><pre class="codeinput">[coeff,score,latent,tsquared,explained] = pca(faces);
+faces_pca = {};
+<span class="keyword">for</span> i=1:16
+    faces_pca = [faces_pca,uint8(255*mat2gray(reshape(coeff(:,i),[100,100])))];
+<span class="keyword">end</span>
+<span class="comment">% First sixteen principal components:</span>
+figure
+montage(cell2mat(faces_pca))
+</pre><img vspace="5" hspace="5" src="faces_script_02.png" alt=""> <p>The first principal component appears to only be an indicator of an image's contrast between the face and background, not as a facial identifier. Thus in constructing a facial recognition algorithm (as we do in a later section), it may be helpful to neglect the first few eigenfaces in order to create a more successful match.</p><h2 id="4">Plot of the Proportion of Variance Explained by Eigenfaces</h2><pre class="codeinput"><span class="comment">%Analyze Principal Components:</span>
+figure
+plot(cumsum(explained),<span class="string">'ro'</span>,<span class="string">'MarkerSize'</span>,1);
+title(<span class="string">'Proportion of Variance Explained (%)'</span>);
+xlabel(<span class="string">'Principal Components'</span>);
+ylabel(<span class="string">'Cumulative Proportion of Variance Explained'</span>);
+</pre><img vspace="5" hspace="5" src="faces_script_03.png" alt=""> <h2 id="5">Image Compression</h2><p>The following is an example of how PCA can be used for the purpose of image compression. We begin with a picture of Alexander Haig and progressively use fewer and fewer principal components (note that 125 components are needed to account for ~90% of the variance - can be seen in the PVE plot above)</p><pre class="codeinput">k_vals = [10,50,125,250,500,999];
+selection = 250; <span class="comment">%Current selection is Alexander Haig, but can be</span>
+                 <span class="comment">%changed to any value in range [1,999]</span>
+                 <span class="comment">%188 is Alan Tudyk</span>
+<span class="keyword">for</span> i=1:6
+    k = k_vals(7-i);
+    z = coeff(:,1:k);
+    V = score(:,1:k);
+    approx = z*V.';
+    approx_face = approx(:,selection) + avg_face;
+    approx_face = imresize(reshape(approx_face,[100,100]),[500 500]);
+    figure
+    imshow(approx_face,[]);
+    title([<span class="string">'k = '</span> num2str(k)])
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="faces_script_04.png" alt=""> <img vspace="5" hspace="5" src="faces_script_05.png" alt=""> <img vspace="5" hspace="5" src="faces_script_06.png" alt=""> <img vspace="5" hspace="5" src="faces_script_07.png" alt=""> <img vspace="5" hspace="5" src="faces_script_08.png" alt=""> <img vspace="5" hspace="5" src="faces_script_09.png" alt=""> <h2 id="7">Facial Recognition</h2><p>An attempt to use eigenfaces for facial recognition using external test image. Inspired by the paper <i>Face Recognition Using Eigenfaces</i> <a href="http://www.cs.ucsb.edu/~mturk/Papers/mturk-CVPR91.pdf">http://www.cs.ucsb.edu/~mturk/Papers/mturk-CVPR91.pdf</a>. We begin with an image of Alexander Haig (taken from <a href="https://commons.wikimedia.org/wiki/File:Alexander_Haig_photo_portrait_as_White_House_Chief_of_Staff_black_and_white.jpg">https://commons.wikimedia.org/wiki/File:Alexander_Haig_photo_portrait_as_White_House_Chief_of_Staff_black_and_white.jpg</a>):</p><pre class="codeinput">first_pc = 6;
+num_pcs = 125;
+haig = imread(<span class="string">'Haig.jpg'</span>);
+haig = imresize(haig(1:637,:),[100, 100]);
+haig_vec = mat2gray(double(reshape(haig,[10000,1])));
+adjusted_input = mat2gray(haig_vec - avg_face);
+proj_tmp = coeff.'*adjusted_input;
+proj = proj_tmp(first_pc:num_pcs,1);
+
+min_dist = norm(score(1,first_pc:num_pcs).' - proj);
+min_img = 1;
+<span class="keyword">for</span> i=1:1000
+    <span class="keyword">if</span> norm(score(i,first_pc:num_pcs).' - proj) &lt; min_dist
+        min_dist = norm(score(i,first_pc:num_pcs).' - proj);
+        min_img = i;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+fprintf(<span class="string">'Smallest norm found is %f and norm for actual photo is %f\n\n\n'</span>,<span class="keyword">...</span>
+    min_dist, norm(score(250,first_pc:num_pcs).' - proj));
+figure
+imshow(imresize(haig, [350, 350]));
+title(<span class="string">'Input Picture'</span>);
+figure
+imshow(imresize(reshape(faces(250,:),[100,100]), [350, 350]));
+title(<span class="string">'Desired Picture in Dataset'</span>);
+figure
+imshow(imresize(reshape(faces(min_img,:),[100,100]), [350, 350]));
+title(<span class="string">'Found Picture in Dataset'</span>);
+
+foundImageLoadings = score(min_img,first_pc:first_pc+9).';
+desiredImageLoadings= score(188,first_pc:first_pc+9).';
+inputImageLoadings = proj(1:10);
+T = table(inputImageLoadings,desiredImageLoadings,foundImageLoadings);
+disp(T);
+</pre><pre class="codeoutput">Smallest norm found is 13.785063 and norm for actual photo is 18.251573
+
+
+    inputImageLoadings    desiredImageLoadings    foundImageLoadings
+    __________________    ____________________    __________________
+
+     1.4152                 0.88766                 1.6577          
+     5.4855               -0.083183                  1.894          
+     1.3098                  5.2557                 1.9986          
+     1.7332                  5.4991                 2.4384          
+     1.6154                  2.1447                 4.1668          
+      -3.63                -0.53483               -0.91129          
+    -1.8008                 0.23071                -1.6074          
+     2.8151               -0.045513                 3.4033          
+    -1.2986                 0.23364                -1.2748          
+    -2.4276                  1.4494                -4.6057          
+
+</pre><img vspace="5" hspace="5" src="faces_script_10.png" alt=""> <img vspace="5" hspace="5" src="faces_script_11.png" alt=""> <img vspace="5" hspace="5" src="faces_script_12.png" alt=""> <p>The image was not successfully found, but interestingly enough an image was found that shares relatively similar features to that of Haig. In particular the eyes, brows, and pursed lips have a resemblance to one another among the three images. Proceeding in the same manner, we input a picture of Alan Tudyk to see if this performs better than that of the Haig example (image taken from Tudyk's IMDB page).</p><pre class="codeinput">first_pc = 5; <span class="comment">%Experimentally found to be the best starting PC</span>
+num_pcs = 125;
+
+<span class="comment">%tudyk = imread('Tudyk.png');</span>
+tudyk = imread(<span class="string">'Tudyk2.jpg'</span>);
+<span class="comment">%tudyk = imresize(tudyk(:,23:292),[100, 100]);</span>
+tudyk = imresize(tudyk(1:186,:,1),[100, 100]);
+tudyk_vec = mat2gray(double(reshape(tudyk,[10000,1])));
+adjusted_input = mat2gray(tudyk_vec - avg_face);
+proj_tmp = coeff.'*adjusted_input;
+proj = proj_tmp(first_pc:num_pcs,1);
+
+min_dist = norm(score(1,first_pc:num_pcs).' - proj);
+min_img = 1;
+<span class="keyword">for</span> i=1:1000
+    <span class="keyword">if</span> norm(score(i,first_pc:num_pcs).' - proj) &lt; min_dist
+        min_dist = norm(score(i,first_pc:num_pcs).' - proj);
+        min_img = i;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+fprintf(<span class="string">'Smallest norm found is %f and norm for actual photo is %f\n\n\n'</span>,<span class="keyword">...</span>
+    min_dist, norm(score(188,first_pc:num_pcs).' - proj));
+figure
+imshow(imresize(tudyk, [350, 350]));
+title(<span class="string">'Input Picture'</span>);
+figure
+imshow(imresize(reshape(faces(188,:),[100,100]), [350, 350]));
+title(<span class="string">'Desired Picture in Dataset'</span>);
+figure
+imshow(imresize(reshape(faces(min_img,:),[100,100]), [350, 350]));
+title(<span class="string">'Found Picture in Dataset'</span>);
+
+foundImageLoadings = score(min_img,first_pc:first_pc+9).';
+desiredImageLoadings= score(188,first_pc:first_pc+9).';
+inputImageLoadings = proj(1:10);
+T = table(inputImageLoadings,desiredImageLoadings,foundImageLoadings);
+disp(T);
+</pre><pre class="codeoutput">Smallest norm found is 14.412159 and norm for actual photo is 18.369880
+
+
+    inputImageLoadings    desiredImageLoadings    foundImageLoadings
+    __________________    ____________________    __________________
+
+      8.3591                 3.8926                 10.368          
+    0.068335                0.88766                -4.2443          
+     0.78171              -0.083183                  1.909          
+     -1.8894                 5.2557                -0.5241          
+     -2.3582                 5.4991                0.78768          
+     0.78286                 2.1447                 -0.903          
+     -6.6991               -0.53483                 -3.862          
+     -4.8797                0.23071                -1.5474          
+     -1.2951              -0.045513                 3.9067          
+      -3.028                0.23364               -0.21714          
+
+</pre><img vspace="5" hspace="5" src="faces_script_13.png" alt=""> <img vspace="5" hspace="5" src="faces_script_14.png" alt=""> <img vspace="5" hspace="5" src="faces_script_15.png" alt=""> <p>In a similar result to the Haig experiment, the image of Tudyk was not successfully found, but an image that shares some features with Tudyk was discovered. Possible reasons for the descrepencies in the images that were found versus the desired images may be attributed to factors like age (in the Haig case, the input image and the desired image are from different stages of Haig's life) or variations in the input image to the desired picture (in the Tudyk case, the shadow cast beneath the chin of the input image may be the reason for the wider face found as the match in the dataset). In the Turk and Pentland paper, the dataset was formed by using multiple images of a small set of people. Conversely, in the dataset used to form this experiment, we have a large sample of photos, but only one desired target image. Thus small variations in the photo quality or facial features of the subject (due to age, shadows, etc.) can have drastic effects on the selection process of the algorithm.</p><h2 id="12">Clustering in "Face Space"</h2><p>Motivated by the idea that the projections into the "space" of the eigenfaces corresponding to some of the higher principal components may, at the very least, be similar faces, we perform a <img src="faces_script_eq15636846968047188835.png" alt="$k$" style="width:6px;height:8px;">-means clustering to the dataset in order to see what kind of similarities we may discover. Below is the cluster that Haig and Tudyk's images get respectively categorized into when performing this naive clustering.</p><div><ul><li><i>Haig Cluster</i></li></ul></div><pre class="codeinput">rng(5); <span class="comment">%Control results</span>
+idx = kmeans(coeff(6:125,:).',500);
+haig_cluster = find(idx == idx(250));
+<span class="keyword">for</span> i = 1:length(haig_cluster)
+    figure
+    imshow(imresize(reshape(faces(haig_cluster(i),:),[100,100]), [500, 500]));
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="faces_script_16.png" alt=""> <img vspace="5" hspace="5" src="faces_script_17.png" alt=""> <div><ul><li><i>Tudyk Cluster</i></li></ul></div><pre class="codeinput">idx = kmeans(coeff(5:125,:).',500);
+tudyk_cluster = find(idx == idx(188));
+<span class="keyword">for</span> i = 1:length(tudyk_cluster)
+    figure
+    imshow(imresize(reshape(faces(tudyk_cluster(i),:),[100,100]), [350, 350]));
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="faces_script_18.png" alt=""> <img vspace="5" hspace="5" src="faces_script_19.png" alt=""> <img vspace="5" hspace="5" src="faces_script_20.png" alt=""> <img vspace="5" hspace="5" src="faces_script_21.png" alt=""> <img vspace="5" hspace="5" src="faces_script_22.png" alt=""> <img vspace="5" hspace="5" src="faces_script_23.png" alt=""> <img vspace="5" hspace="5" src="faces_script_24.png" alt=""> <img vspace="5" hspace="5" src="faces_script_25.png" alt=""> <p>Clearly the <img src="faces_script_eq15636846968047188835.png" alt="$k$" style="width:6px;height:8px;"> means clustering leaves much to be desired in this result: no strikingly discernable features are commonly shared within the clusters. The choice <img src="faces_script_eq14733874461144470150.png" alt="$k=500$" style="width:37px;height:8px;"> was albeit fairly arbitrary (chosen mostly in order to create small enough clusters to present in a condensed format). Through trial and error it appears that this cluster size is a fairly poor choice since there is a very high degree of variability within the convergence of the <img src="faces_script_eq15636846968047188835.png" alt="$k$" style="width:6px;height:8px;"> means algorithm. This could be improved by means of cross validation, but at this stage it's perhaps more likely that the limitations of a mere principal component analysis on this dataset are beginning to become too glaring, and more modern, powerful techniques should be utilized.</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Eigenfaces Explorative Analysis
+% The following MATLAB code reads in facial images (a subset of the 
+% images provided at
+% <https://cyberextruder.com/face-matching-data-set-download/>)
+% and performs analysis on the dataset.
+
+%% 
+%Begin by reading in dataset:
+faces = csvread('faces.csv',1,1);
+for i=1:1000
+    faces(i,:) = mat2gray(faces(i,:));
+end
+
+%Display the average face of data:
+avg_face = zeros(10000,1);
+for i=1:10000
+   avg_face(i) = sum(faces(:,i))/1000.0;
+end
+avg_face = mat2gray(avg_face);
+figure
+imshow(imresize(reshape(avg_face,[100,100]),[500, 500]),[]);
+title('Average face from data');
+
+
+%% PCA of Faces
+% Here we perform PCA on the face dataset and view the first 16 eigenfaces.
+[coeff,score,latent,tsquared,explained] = pca(faces);
+faces_pca = {};
+for i=1:16
+    faces_pca = [faces_pca,uint8(255*mat2gray(reshape(coeff(:,i),[100,100])))];
+end
+% First sixteen principal components:
+figure
+montage(cell2mat(faces_pca))
+
+%% 
+% The first principal component appears to only be an indicator of an
+% image's contrast between the face and background, not as a facial identifier. Thus in
+% constructing a facial recognition algorithm (as we do in a later
+% section), it may be helpful to neglect the first few eigenfaces in order
+% to create a more successful match.
+
+%% Plot of the Proportion of Variance Explained by Eigenfaces
+
+%Analyze Principal Components:
+figure
+plot(cumsum(explained),'ro','MarkerSize',1);
+title('Proportion of Variance Explained (%)');
+xlabel('Principal Components');
+ylabel('Cumulative Proportion of Variance Explained');
+
+%% Image Compression
+% The following is an example of how PCA can be used for the purpose of 
+% image compression. We begin with a picture of Alexander Haig and 
+% progressively use fewer and fewer principal components (note that 125 
+% components are needed to account for ~90% of the variance - can be seen 
+% in the PVE plot above)
+%% 
+k_vals = [10,50,125,250,500,999];
+selection = 250; %Current selection is Alexander Haig, but can be
+                 %changed to any value in range [1,999]
+                 %188 is Alan Tudyk
+for i=1:6
+    k = k_vals(7-i);
+    z = coeff(:,1:k);
+    V = score(:,1:k);
+    approx = z*V.';
+    approx_face = approx(:,selection) + avg_face;
+    approx_face = imresize(reshape(approx_face,[100,100]),[500 500]);
+    figure
+    imshow(approx_face,[]);
+    title(['k = ' num2str(k)])
+end
+
+%% Facial Recognition
+% An attempt to use eigenfaces for facial recognition using external test
+% image. Inspired by the paper _Face Recognition Using Eigenfaces_
+% <http://www.cs.ucsb.edu/~mturk/Papers/mturk-CVPR91.pdf>. We begin with an
+% image of Alexander Haig (taken from <https://commons.wikimedia.org/wiki/File:Alexander_Haig_photo_portrait_as_White_House_Chief_of_Staff_black_and_white.jpg>):
+
+%% 
+first_pc = 6;
+num_pcs = 125;
+haig = imread('Haig.jpg');
+haig = imresize(haig(1:637,:),[100, 100]);
+haig_vec = mat2gray(double(reshape(haig,[10000,1])));
+adjusted_input = mat2gray(haig_vec - avg_face);
+proj_tmp = coeff.'*adjusted_input;
+proj = proj_tmp(first_pc:num_pcs,1);
+
+min_dist = norm(score(1,first_pc:num_pcs).' - proj);
+min_img = 1;
+for i=1:1000
+    if norm(score(i,first_pc:num_pcs).' - proj) < min_dist
+        min_dist = norm(score(i,first_pc:num_pcs).' - proj);
+        min_img = i;
+    end
+end
+        
+fprintf('Smallest norm found is %f and norm for actual photo is %f\n\n\n',...
+    min_dist, norm(score(250,first_pc:num_pcs).' - proj));
+figure
+imshow(imresize(haig, [350, 350]));
+title('Input Picture');
+figure
+imshow(imresize(reshape(faces(250,:),[100,100]), [350, 350]));
+title('Desired Picture in Dataset');
+figure
+imshow(imresize(reshape(faces(min_img,:),[100,100]), [350, 350]));
+title('Found Picture in Dataset');
+
+foundImageLoadings = score(min_img,first_pc:first_pc+9).';
+desiredImageLoadings= score(188,first_pc:first_pc+9).';
+inputImageLoadings = proj(1:10);
+T = table(inputImageLoadings,desiredImageLoadings,foundImageLoadings);
+disp(T);
+%% 
+% The image was not successfully found, but interestingly enough an image
+% was found that shares relatively similar features to that of Haig. In
+% particular the eyes, brows, and pursed lips have a resemblance to one
+% another among the three images. Proceeding in the same manner, we input a 
+% picture of Alan Tudyk to see if this performs better than that of the 
+% Haig example (image taken from Tudyk's IMDB page).
+
+%% 
+first_pc = 5; %Experimentally found to be the best starting PC
+num_pcs = 125;
+
+%tudyk = imread('Tudyk.png');
+tudyk = imread('Tudyk2.jpg');
+%tudyk = imresize(tudyk(:,23:292),[100, 100]);
+tudyk = imresize(tudyk(1:186,:,1),[100, 100]);
+tudyk_vec = mat2gray(double(reshape(tudyk,[10000,1])));
+adjusted_input = mat2gray(tudyk_vec - avg_face);
+proj_tmp = coeff.'*adjusted_input;
+proj = proj_tmp(first_pc:num_pcs,1);
+
+min_dist = norm(score(1,first_pc:num_pcs).' - proj);
+min_img = 1;
+for i=1:1000
+    if norm(score(i,first_pc:num_pcs).' - proj) < min_dist
+        min_dist = norm(score(i,first_pc:num_pcs).' - proj);
+        min_img = i;
+    end
+end
+fprintf('Smallest norm found is %f and norm for actual photo is %f\n\n\n',...
+    min_dist, norm(score(188,first_pc:num_pcs).' - proj));
+figure
+imshow(imresize(tudyk, [350, 350]));
+title('Input Picture');
+figure
+imshow(imresize(reshape(faces(188,:),[100,100]), [350, 350]));
+title('Desired Picture in Dataset');
+figure
+imshow(imresize(reshape(faces(min_img,:),[100,100]), [350, 350]));
+title('Found Picture in Dataset');
+
+foundImageLoadings = score(min_img,first_pc:first_pc+9).';
+desiredImageLoadings= score(188,first_pc:first_pc+9).';
+inputImageLoadings = proj(1:10);
+T = table(inputImageLoadings,desiredImageLoadings,foundImageLoadings);
+disp(T);
+%% 
+% In a similar result to the Haig experiment, the image of Tudyk was not
+% successfully found, but an image that shares some features with Tudyk was
+% discovered. Possible reasons for the descrepencies in the images that
+% were found versus the desired images may be attributed to factors like
+% age (in the Haig case, the input image and the desired image are from
+% different stages of Haig's life) or variations in the input image to the
+% desired picture (in the Tudyk case, the shadow cast beneath the chin of
+% the input image may be the reason for the wider face found as the match
+% in the dataset). In the Turk and Pentland paper, the dataset was formed
+% by using multiple images of a small set of people. Conversely, in the
+% dataset used to form this experiment, we have a large sample of photos,
+% but only one desired target image. Thus small variations in the photo
+% quality or facial features of the subject (due to age, shadows, etc.) can
+% have drastic effects on the selection process of the algorithm.
+
+%% Clustering in "Face Space"
+% Motivated by the idea that the projections into the "space" of the
+% eigenfaces corresponding to some of the higher principal components may,
+% at the very least, be similar faces, we perform a $k$-means clustering to
+% the dataset in order to see what kind of similarities we may discover.
+% Below is the cluster that Haig and Tudyk's images get respectively
+% categorized into when performing this naive clustering.
+
+%%
+% * _Haig Cluster_
+rng(5); %Control results
+idx = kmeans(coeff(6:125,:).',500);
+haig_cluster = find(idx == idx(250));
+for i = 1:length(haig_cluster)
+    figure
+    imshow(imresize(reshape(faces(haig_cluster(i),:),[100,100]), [500, 500]));
+end
+
+%% 
+% * _Tudyk Cluster_
+idx = kmeans(coeff(5:125,:).',500);
+tudyk_cluster = find(idx == idx(188));
+for i = 1:length(tudyk_cluster)
+    figure
+    imshow(imresize(reshape(faces(tudyk_cluster(i),:),[100,100]), [350, 350]));
+end
+
+%%
+% Clearly the $k$ means clustering leaves much to be desired in this result:
+% no strikingly discernable features are commonly shared within the
+% clusters. The choice $k=500$ was albeit fairly arbitrary (chosen mostly
+% in order to create small enough clusters to present in a condensed
+% format). Through trial and error it appears that this cluster size is a
+% fairly poor choice since there is a very high degree of variability
+% within the convergence of the $k$ means algorithm. This could be improved
+% by means of cross validation, but at this stage it's perhaps more likely 
+% that the limitations of a mere principal component analysis on this
+% dataset are beginning to become too glaring, and more modern, powerful 
+% techniques should be utilized.
+
+
+
+##### SOURCE END #####
+--></body></html>
